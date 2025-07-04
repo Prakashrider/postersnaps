@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pointers Poster</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            padding: 60px;
+            min-height: 100vh;
+        }
+        
+        .poster-container {
+            text-align: center;
+            max-width: 900px;
+            width: 100%;
+        }
+        
+        .headline {
+            font-size: 3.5rem;
+            font-weight: 700;
+            margin-bottom: 30px;
+            line-height: 1.1;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .subtitle {
+            font-size: 1.5rem;
+            font-weight: 400;
+            margin-bottom: 50px;
+            opacity: 0.9;
+            line-height: 1.4;
+        }
+        
+        .points-container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            margin: 30px 0;
+            text-align: left;
+        }
+        
+        .bullet-points {
+            list-style: none;
+            font-size: 1.25rem;
+            line-height: 1.6;
+        }
+        
+        .bullet-point {
+            margin-bottom: 25px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            position: relative;
+            border-left: 4px solid #10B981;
+            transition: all 0.3s ease;
+        }
+        
+        .bullet-point::before {
+            content: counter(bullet-counter);
+            counter-increment: bullet-counter;
+            position: absolute;
+            left: -20px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 40px;
+            height: 40px;
+            background: #10B981;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2em;
+            color: white;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        
+        .bullet-points {
+            counter-reset: bullet-counter;
+        }
+        
+        .point-text {
+            margin-left: 20px;
+            font-weight: 500;
+        }
+        
+        .point-highlight {
+            color: #10B981;
+            font-weight: 700;
+        }
+        
+        /* Format-specific styles */
+        .square {
+            width: 1080px;
+            height: 1080px;
+        }
+        
+        .portrait {
+            width: 1080px;
+            height: 1350px;
+        }
+        
+        .story {
+            width: 1080px;
+            height: 1920px;
+        }
+        
+        .story .headline {
+            font-size: 4rem;
+        }
+        
+        .story .subtitle {
+            font-size: 1.75rem;
+        }
+        
+        .story .bullet-point {
+            font-size: 1.5rem;
+            margin-bottom: 30px;
+        }
+        
+        .story .bullet-point::before {
+            width: 50px;
+            height: 50px;
+            font-size: 1.4em;
+        }
+    </style>
+</head>
+<body class="{{format}}">
+    <div class="poster-container">
+        <h1 class="headline">{{headline}}</h1>
+        <p class="subtitle">{{subtitle}}</p>
+        
+        <div class="points-container">
+            <ul class="bullet-points">
+                {{bulletPoints}}
+            </ul>
+        </div>
+    </div>
+</body>
+</html>

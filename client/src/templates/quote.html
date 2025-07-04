@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quote Poster</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #ff6b6b 0%, #feca57 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            padding: 60px;
+            min-height: 100vh;
+            position: relative;
+        }
+        
+        body::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at 30% 70%, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
+            pointer-events: none;
+        }
+        
+        .poster-container {
+            text-align: center;
+            max-width: 900px;
+            width: 100%;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .quote-mark {
+            font-size: 8rem;
+            font-weight: 900;
+            opacity: 0.2;
+            line-height: 1;
+            margin-bottom: -40px;
+        }
+        
+        .headline {
+            font-size: 3.5rem;
+            font-weight: 700;
+            margin-bottom: 30px;
+            line-height: 1.1;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            font-style: italic;
+        }
+        
+        .subtitle {
+            font-size: 1.5rem;
+            font-weight: 400;
+            margin-bottom: 50px;
+            opacity: 0.9;
+            line-height: 1.4;
+        }
+        
+        .quote-section {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            margin: 30px 0;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .bullet-points {
+            list-style: none;
+            font-size: 1.25rem;
+            line-height: 1.6;
+            text-align: left;
+        }
+        
+        .bullet-point {
+            margin-bottom: 20px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            position: relative;
+            font-style: italic;
+        }
+        
+        .bullet-point::before {
+            content: '"';
+            position: absolute;
+            left: 10px;
+            top: 5px;
+            font-size: 2em;
+            color: #10B981;
+            font-weight: bold;
+            opacity: 0.7;
+        }
+        
+        .author-attribution {
+            margin-top: 40px;
+            font-size: 1.1rem;
+            opacity: 0.8;
+            font-weight: 500;
+        }
+        
+        /* Format-specific styles */
+        .square {
+            width: 1080px;
+            height: 1080px;
+        }
+        
+        .portrait {
+            width: 1080px;
+            height: 1350px;
+        }
+        
+        .story {
+            width: 1080px;
+            height: 1920px;
+        }
+        
+        .story .headline {
+            font-size: 4rem;
+        }
+        
+        .story .subtitle {
+            font-size: 1.75rem;
+        }
+        
+        .story .bullet-point {
+            font-size: 1.5rem;
+        }
+        
+        .story .quote-mark {
+            font-size: 10rem;
+        }
+    </style>
+</head>
+<body class="{{format}}">
+    <div class="poster-container">
+        <div class="quote-mark">"</div>
+        <h1 class="headline">{{headline}}</h1>
+        <p class="subtitle">{{subtitle}}</p>
+        
+        <div class="quote-section">
+            <ul class="bullet-points">
+                {{bulletPoints}}
+            </ul>
+        </div>
+        
+        <div class="author-attribution">
+            — AI Generated Inspiration
+        </div>
+    </div>
+</body>
+</html>
