@@ -3,9 +3,7 @@ import { PosterStyle, OutputFormat, AIContent } from '@shared/schema';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
-// Forward declarations
-async function generateSVGPosters(content: AIContent, style: PosterStyle, format: OutputFormat, pages: number): Promise<string[]>;
-function generatePosterSVG(content: AIContent, style: PosterStyle, format: OutputFormat, dimensions: { width: number; height: number }): string;
+
 
 interface RenderParams {
   content: AIContent;

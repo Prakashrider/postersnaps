@@ -33,11 +33,9 @@ export default function PosterGenerator({ user }: PosterGeneratorProps) {
   const { toast } = useToast();
 
   const generatePosterMutation = useMutation({
-    mutationFn: (data: any) => apiRequest('/api/generate-poster', {
-      method: 'POST',
-      body: JSON.stringify(data)
-    }),
-    onSuccess: (data) => {
+    mutationFn: (data: any) => apiRequest('POST', '/api/generate-poster', data),
+    onSuccess: async (response) => {
+      const data = await response.json();
       setCurrentPosterId(data.posterId);
       setCurrentStep('preview');
     },
@@ -54,11 +52,14 @@ export default function PosterGenerator({ user }: PosterGeneratorProps) {
     }
   });
 
-  const { data: posterData, isLoading: posterLoading } = useQuery({
+  const posterQuery = useQuery({
     queryKey: ['/api/poster', currentPosterId],
     enabled: !!currentPosterId,
-    refetchInterval: (data) => data?.status === 'processing' ? 2000 : false,
+    refetchInterval: 2000,
+    refetchIntervalInBackground: false,
   });
+  
+  const { data: posterData, isLoading: posterLoading } = posterQuery;
 
   const handleStartGeneration = () => {
     if (!inputValue.trim()) {
