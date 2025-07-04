@@ -3,9 +3,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
-import { signInWithGoogle } from '@/lib/firebase';
+import { signInWithGoogle, signUpWithEmail, signInWithEmail } from '@/lib/firebase';
 import { UserPlus, Mail } from 'lucide-react';
 import { useState } from 'react';
+import { useToast } from '@/hooks/use-toast';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -17,14 +18,105 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
   const [isSignUp, setIsSignUp] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
 
-  const handleGoogleSignIn = () => {
-    signInWithGoogle();
+  const handleGoogleSignIn = async () => {
+    try {
+      setIsLoading(true);
+      await signInWithGoogle();
+      onSuccess();
+      onClose();
+    } catch (error: any) {
+      console.error('Google sign in error:', error);
+      
+      let errorMessage = "Please try again or use email authentication.";
+      
+      if (error.code === 'auth/popup-closed-by-user') {
+        errorMessage = "Sign-in was cancelled. Please try again.";
+      } else if (error.code === 'auth/popup-blocked') {
+        errorMessage = "Popup was blocked. Please allow popups for this site or try email authentication.";
+      } else if (error.code === 'auth/network-request-failed') {
+        errorMessage = "Network error. Please check your internet connection.";
+      } else if (error.message?.includes('Cross-Origin-Opener-Policy')) {
+        errorMessage = "Browser security settings are blocking the popup. Please try email authentication instead.";
+      }
+      
+      toast({
+        title: "Google Sign-in failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleEmailAuth = () => {
-    // TODO: Implement email authentication
-    console.log('Email auth:', { email, password, isSignUp });
+  const handleEmailAuth = async () => {
+    if (!email.trim() || !password.trim()) {
+      toast({
+        title: "Missing information",
+        description: "Please enter both email and password.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (password.length < 6) {
+      toast({
+        title: "Password too short",
+        description: "Password must be at least 6 characters.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      
+      if (isSignUp) {
+        await signUpWithEmail(email, password);
+        toast({
+          title: "Account created!",
+          description: "Welcome to PosterSnaps!",
+          variant: "default",
+        });
+      } else {
+        await signInWithEmail(email, password);
+        toast({
+          title: "Welcome back!",
+          description: "You're successfully signed in.",
+          variant: "default",
+        });
+      }
+      
+      onSuccess();
+      onClose();
+    } catch (error: any) {
+      console.error('Email auth error:', error);
+      
+      let errorMessage = "An error occurred. Please try again.";
+      
+      if (error.code === 'auth/email-already-in-use') {
+        errorMessage = "This email is already registered. Try signing in instead.";
+      } else if (error.code === 'auth/weak-password') {
+        errorMessage = "Password is too weak. Please use a stronger password.";
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = "Please enter a valid email address.";
+      } else if (error.code === 'auth/user-not-found') {
+        errorMessage = "No account found with this email. Try signing up instead.";
+      } else if (error.code === 'auth/wrong-password') {
+        errorMessage = "Incorrect password. Please try again.";
+      }
+      
+      toast({
+        title: isSignUp ? "Sign up failed" : "Sign in failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -47,6 +139,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
         <div className="space-y-4">
           <Button
             onClick={handleGoogleSignIn}
+            disabled={isLoading}
             className="w-full bg-red-500 hover:bg-red-600 text-white"
           >
             <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
@@ -55,7 +148,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
               <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
               <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
             </svg>
-            Continue with Google
+            {isLoading ? 'Signing in...' : 'Continue with Google'}
           </Button>
 
           <div className="relative">
@@ -93,10 +186,11 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
 
               <Button
                 onClick={handleEmailAuth}
+                disabled={isLoading}
                 className="w-full bg-gray-800 hover:bg-gray-900"
               >
                 <Mail className="h-4 w-4 mr-2" />
-                {isSignUp ? 'Sign up with Email' : 'Sign in with Email'}
+                {isLoading ? 'Processing...' : (isSignUp ? 'Sign up with Email' : 'Sign in with Email')}
               </Button>
             </CardContent>
           </Card>

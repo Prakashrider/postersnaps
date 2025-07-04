@@ -9,21 +9,67 @@ import { verifyFirebaseToken } from './services/firebase';
 
 const router = Router();
 
+// Health check endpoint
+router.get('/health', (req, res) => {
+  res.json({ status: 'OK', message: 'PosterSnaps API is running!' });
+});
+
 // Generate poster endpoint
 router.post('/generate-poster', async (req, res) => {
   try {
+    console.log('📝 Received poster generation request:', JSON.stringify(req.body, null, 2));
+    
     const result = createPosterConfigSchema.safeParse(req.body);
     if (!result.success) {
+      console.error('❌ Validation failed:', result.error.errors);
       return res.status(400).json({ error: 'Invalid request data', details: result.error.errors });
     }
     
     const config = result.data;
+    console.log('✅ Validated config:', JSON.stringify(config, null, 2));
     
     // Check session limit for free users
     if (!config.userId) {
       const sessionCount = await storage.getSessionPosterCount(config.sessionId);
-      if (sessionCount >= 1) {
+      if (sessionCount >= 1) { // Production limit: 1 poster per free session
         return res.status(429).json({ error: 'Free limit reached. Please sign in to continue.' });
+      }
+    } else {
+      // Check if user has unlimited access
+      const user = await verifyFirebaseToken(req.headers.authorization?.split(' ')[1] || '');
+      const adminEmail = process.env.ADMIN_EMAIL || 'maritimeriderprakash@gmail.com';
+      const isUnlimitedUser = user?.email === adminEmail;
+      
+      if (!isUnlimitedUser) {
+        // Credits system for authenticated users
+        const usage = await storage.getUserUsage(config.userId);
+        const userCredits = usage?.credits || 0;
+        const userPlan = usage?.plan || 'free';
+        
+        // Credits required per poster generation (can be configured later)
+        const creditsRequired = 1;
+        const estimatedPosters = Math.max(config.minPages, 1);
+        const totalCreditsNeeded = creditsRequired * estimatedPosters;
+        
+        if (userPlan === 'free' && userCredits < totalCreditsNeeded) {
+          return res.status(429).json({ 
+            error: 'Insufficient credits. Purchase credits or upgrade to Premium.',
+            creditsRequired: totalCreditsNeeded,
+            creditsAvailable: userCredits,
+            suggestedAction: 'upgrade'
+          });
+        }
+        
+        // For premium users, give generous daily limits instead of credits
+        if (userPlan !== 'premium' && userPlan !== 'enterprise') {
+          const dailyLimit = 50;
+          if ((usage?.postersCreated || 0) >= dailyLimit) {
+            return res.status(429).json({ 
+              error: 'Daily limit reached. Upgrade to Premium for unlimited access.',
+              creditsRemaining: userCredits 
+            });
+          }
+        }
       }
     }
 
@@ -112,12 +158,143 @@ router.get('/user-usage/:userId', async (req, res) => {
   try {
     const userId = req.params.userId;
     const usage = await storage.getUserUsage(userId);
-    res.json(usage || { userId, postersCreated: 0, lastPosterCreated: new Date() });
+    res.json(usage || { 
+      userId, 
+      postersCreated: 0, 
+      lastPosterCreated: new Date(),
+      credits: 5,
+      plan: 'free'
+    });
   } catch (error) {
     console.error('Get user usage error:', error);
     res.status(500).json({ error: 'Failed to get user usage' });
   }
 });
+
+// Credits purchase endpoint (placeholder for future payment integration)
+router.post('/purchase-credits', async (req, res) => {
+  try {
+    const { userId, packageId, paymentToken } = req.body;
+    
+    // TODO: Implement payment processing here
+    // For now, just add credits for testing
+    const creditPackages = {
+      'starter': { credits: 10, price: 5 },
+      'pro': { credits: 50, price: 20 },
+      'unlimited': { credits: 999, price: 50 }
+    };
+    
+    const selectedPackage = creditPackages[packageId as keyof typeof creditPackages];
+    if (!selectedPackage) {
+      return res.status(400).json({ error: 'Invalid package selected' });
+    }
+    
+    // Add credits to user account
+    const updatedUsage = await storage.addCredits(userId, selectedPackage.credits);
+    
+    res.json({ 
+      success: true, 
+      message: `${selectedPackage.credits} credits added to your account`,
+      newBalance: updatedUsage.credits
+    });
+  } catch (error) {
+    console.error('Purchase credits error:', error);
+    res.status(500).json({ error: 'Failed to process credit purchase' });
+  }
+});
+
+// Admin endpoints for credit management
+router.post('/admin/add-credits', async (req, res) => {
+  try {
+    const { adminToken, userId, credits } = req.body;
+    
+    // Verify admin access
+    const admin = await verifyFirebaseToken(adminToken);
+    const adminEmail = process.env.ADMIN_EMAIL || 'maritimeriderprakash@gmail.com';
+    if (!admin || admin.email !== adminEmail) {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+    
+    const updatedUsage = await storage.addCredits(userId, credits);
+    res.json({ 
+      success: true, 
+      message: `${credits} credits added to user ${userId}`,
+      newBalance: updatedUsage.credits
+    });
+  } catch (error) {
+    console.error('Admin add credits error:', error);
+    res.status(500).json({ error: 'Failed to add credits' });
+  }
+});
+
+router.get('/admin/users', async (req, res) => {
+  try {
+    const adminToken = req.headers.authorization?.split(' ')[1];
+    
+    // Verify admin access
+    const admin = await verifyFirebaseToken(adminToken || '');
+    const adminEmail = process.env.ADMIN_EMAIL || 'maritimeriderprakash@gmail.com';
+    if (!admin || admin.email !== adminEmail) {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+    
+    // In production, you'd fetch from a proper database
+    // For now, return a simple response
+    res.json({ 
+      message: 'Admin access granted',
+      adminEmail: admin.email,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Admin users error:', error);
+    res.status(500).json({ error: 'Failed to fetch users' });
+  }
+});
+
+// Credit packages endpoint
+router.get('/credit-packages', (req, res) => {
+  const packages = [
+    {
+      id: 'starter',
+      name: 'Starter Pack',
+      credits: 10,
+      price: 5,
+      description: 'Perfect for trying out PosterSnaps',
+      popular: false
+    },
+    {
+      id: 'pro',
+      name: 'Pro Pack',
+      credits: 50,
+      price: 20,
+      description: 'Great for regular users',
+      popular: true
+    },
+    {
+      id: 'unlimited',
+      name: 'Unlimited Pack',
+      credits: 999,
+      price: 50,
+      description: 'For power users and businesses',
+      popular: false
+    }
+  ];
+  
+  res.json(packages);
+});
+
+// Helper function to check unlimited access
+async function checkUnlimitedAccess(userId: string): Promise<boolean> {
+  try {
+    // Check if this userId corresponds to the admin email
+    const adminEmail = process.env.ADMIN_EMAIL || 'maritimeriderprakash@gmail.com';
+    const adminEmails = [adminEmail];
+    return adminEmails.includes(userId) || adminEmails.some(email => userId.includes(email));
+  } catch (error) {
+    console.error('Error checking unlimited access:', error);
+    return false;
+  }
+}
 
 // Background processing function
 async function processPostersInBackground(posterId: string) {
@@ -125,30 +302,70 @@ async function processPostersInBackground(posterId: string) {
     const posterConfig = await storage.getPosterConfig(posterId);
     if (!posterConfig) return;
 
+    console.log('🔄 Processing poster with config:', JSON.stringify({
+      style: posterConfig.style,
+      contentType: posterConfig.contentType,
+      outputFormat: posterConfig.outputFormat,
+      minPages: posterConfig.minPages,
+      maxPages: posterConfig.maxPages
+    }, null, 2));
+
     // Extract metadata if URL mode
     let metadata = null;
     if (posterConfig.inputMode === 'url') {
       metadata = await extractMetadata(posterConfig.inputValue);
     }
 
-    // Generate AI content
-    const aiContent = await generateAIContent({
-      input: posterConfig.inputValue,
-      inputMode: posterConfig.inputMode,
+    // Generate unique AI content for each poster
+    // Choose a random number of posters between min and max pages
+    const minPosters = Math.max(posterConfig.minPages, 1);
+    const maxPosters = Math.max(posterConfig.maxPages, minPosters);
+    const numPosters = minPosters === maxPosters ? minPosters : 
+      Math.floor(Math.random() * (maxPosters - minPosters + 1)) + minPosters;
+    
+    console.log(`🎯 Generating ${numPosters} posters (range: ${minPosters}-${maxPosters}) with config:`, {
       style: posterConfig.style,
       contentType: posterConfig.contentType,
-      metadata,
+      outputFormat: posterConfig.outputFormat,
       minPages: posterConfig.minPages,
       maxPages: posterConfig.maxPages
     });
+    
+    const posterUrls: string[] = [];
+    
+    for (let i = 0; i < numPosters; i++) {
+      console.log(`🔄 Generating poster ${i + 1}/${numPosters}`);
+      
+      // Generate unique content for each poster
+      const aiContent = await generateAIContent({
+        input: posterConfig.inputValue,
+        inputMode: posterConfig.inputMode,
+        style: posterConfig.style,
+        contentType: posterConfig.contentType,
+        metadata,
+        minPages: 1, // Each poster is 1 page
+        maxPages: 1,
+        variation: i + 1, // Pass variation number for unique content
+        totalPosters: numPosters
+      });
 
-    // Render posters
-    const posterUrls = await renderPoster({
-      content: aiContent,
-      style: posterConfig.style,
-      format: posterConfig.outputFormat,
-      pages: aiContent.pages
-    });
+      console.log(`✨ Generated content for poster ${i + 1}:`, {
+        headline: aiContent.headline,
+        subtitle: aiContent.subtitle.substring(0, 50) + '...',
+        bulletCount: aiContent.bulletPoints.length
+      });
+
+      // Render single poster
+      const singlePosterUrls = await renderPoster({
+        content: aiContent,
+        style: posterConfig.style,
+        format: posterConfig.outputFormat,
+        pages: 1 // Always 1 page per poster
+      });
+      
+      console.log(`🖼️ Rendered poster ${i + 1}, URLs count:`, singlePosterUrls.length);
+      posterUrls.push(...singlePosterUrls);
+    }
 
     // Update poster config
     await storage.updatePosterConfig(posterId, {
@@ -156,9 +373,25 @@ async function processPostersInBackground(posterId: string) {
       posterUrls
     });
 
-    // Update usage counters
+    // Update usage counters and deduct credits
     if (posterConfig.userId) {
       const usage = await storage.getUserUsage(posterConfig.userId);
+      
+      // Check if user has unlimited access (admin email)
+      // For Firebase Auth, the userId is usually the email or we can check via token
+      const adminEmail = process.env.ADMIN_EMAIL || 'maritimeriderprakash@gmail.com';
+      const isUnlimitedUser = await checkUnlimitedAccess(posterConfig.userId) || 
+                             posterConfig.userId === adminEmail;
+      
+      if (!isUnlimitedUser) {
+        // Deduct credits (1 credit per poster generated)
+        const creditsToDeduct = posterUrls.length;
+        await storage.deductCredits(posterConfig.userId, creditsToDeduct);
+        console.log(`💳 Deducted ${creditsToDeduct} credits for user ${posterConfig.userId}`);
+      } else {
+        console.log(`👑 Unlimited access for admin user ${posterConfig.userId}`);
+      }
+      
       await storage.updateUserUsage(posterConfig.userId, {
         postersCreated: (usage?.postersCreated || 0) + 1,
         lastPosterCreated: new Date()

@@ -15,6 +15,13 @@ interface RenderParams {
 export async function renderPoster(params: RenderParams): Promise<string[]> {
   const { content, style, format, pages } = params;
   
+  console.log('🖼️ Rendering poster with params:', JSON.stringify({
+    style,
+    format,
+    pages,
+    headline: content.headline.substring(0, 30) + '...'
+  }, null, 2));
+
   try {
     // Try Puppeteer first, fallback to SVG generation
     if (process.env.NODE_ENV === 'production' || process.env.FORCE_FALLBACK_RENDERER) {

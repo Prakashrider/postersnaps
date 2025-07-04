@@ -1,0 +1,18 @@
+User-agent: *
+Allow: /
+Allow: /about
+Allow: /contact
+Allow: /faq
+Allow: /how-it-works
+Allow: /blog
+Allow: /blog/*
+
+Disallow: /api/*
+Disallow: /admin/*
+Disallow: /user/*
+Disallow: /auth/*
+
+Sitemap: https://postersnaps.com/sitemap.xml
+
+# Crawl-delay for respectful crawling
+Crawl-delay: 1

@@ -1,0 +1,52 @@
+<svg width="400" height="500" viewBox="0 0 400 500" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="cardGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:0.95" />
+      <stop offset="100%" style="stop-color:#f8fafc;stop-opacity:0.95" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="400" height="500" fill="url(#bgGradient)"/>
+  
+  <!-- Decorative elements -->
+  <circle cx="50" cy="50" r="20" fill="rgba(255,255,255,0.1)"/>
+  <circle cx="350" cy="450" r="30" fill="rgba(255,255,255,0.1)"/>
+  <circle cx="380" cy="80" r="15" fill="rgba(255,255,255,0.1)"/>
+  
+  <!-- Content Card -->
+  <rect x="30" y="60" width="340" height="380" rx="20" fill="url(#cardGradient)"/>
+  
+  <!-- Title -->
+  <text x="200" y="100" text-anchor="middle" fill="#1e293b" font-family="Arial, sans-serif" font-size="24" font-weight="bold">
+    Climate Change
+  </text>
+  
+  <!-- Subtitle -->
+  <text x="200" y="130" text-anchor="middle" fill="#64748b" font-family="Arial, sans-serif" font-size="16">
+    Understanding Our Impact
+  </text>
+  
+  <!-- Content blocks -->
+  <rect x="60" y="160" width="280" height="4" rx="2" fill="#e2e8f0"/>
+  <rect x="60" y="180" width="260" height="4" rx="2" fill="#e2e8f0"/>
+  <rect x="60" y="200" width="240" height="4" rx="2" fill="#e2e8f0"/>
+  <rect x="60" y="220" width="270" height="4" rx="2" fill="#e2e8f0"/>
+  
+  <rect x="60" y="260" width="280" height="4" rx="2" fill="#e2e8f0"/>
+  <rect x="60" y="280" width="250" height="4" rx="2" fill="#e2e8f0"/>
+  <rect x="60" y="300" width="230" height="4" rx="2" fill="#e2e8f0"/>
+  
+  <rect x="60" y="340" width="280" height="4" rx="2" fill="#e2e8f0"/>
+  <rect x="60" y="360" width="260" height="4" rx="2" fill="#e2e8f0"/>
+  <rect x="60" y="380" width="240" height="4" rx="2" fill="#e2e8f0"/>
+  
+  <!-- Logo/Brand -->
+  <text x="200" y="470" text-anchor="middle" fill="#ffffff" font-family="Arial, sans-serif" font-size="14" font-weight="bold">
+    PosterSnaps
+  </text>
+</svg>

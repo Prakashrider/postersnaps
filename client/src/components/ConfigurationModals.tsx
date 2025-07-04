@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -29,6 +29,18 @@ export default function ConfigurationModals({
 }: ConfigurationModalsProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [selectedOptions, setSelectedOptions] = useState(config);
+
+  // Update selectedOptions when config changes
+  useEffect(() => {
+    setSelectedOptions(config);
+  }, [config]);
+
+  // Reset currentStep when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setCurrentStep(0);
+    }
+  }, [isOpen]);
 
   const steps = [
     {

@@ -14,6 +14,10 @@ export interface IStorage {
   // Session tracking
   getSessionPosterCount(sessionId: string): Promise<number>;
   incrementSessionPosterCount(sessionId: string): Promise<void>;
+  
+  // Credits management
+  deductCredits(userId: string, amount: number): Promise<UserUsage>;
+  addCredits(userId: string, amount: number): Promise<UserUsage>;
 }
 
 export class MemStorage implements IStorage {
@@ -58,7 +62,14 @@ export class MemStorage implements IStorage {
     const existing = this.userUsages.get(userId);
     const updated: UserUsage = existing 
       ? { ...existing, ...updates }
-      : { userId, postersCreated: 0, lastPosterCreated: new Date(), ...updates };
+      : { 
+          userId, 
+          postersCreated: 0, 
+          lastPosterCreated: new Date(),
+          credits: 5, // Default 5 credits for new users
+          plan: 'free',
+          ...updates 
+        };
     this.userUsages.set(userId, updated);
     return updated;
   }
@@ -70,6 +81,42 @@ export class MemStorage implements IStorage {
   async incrementSessionPosterCount(sessionId: string): Promise<void> {
     const current = this.sessionCounts.get(sessionId) || 0;
     this.sessionCounts.set(sessionId, current + 1);
+  }
+
+  // Credits management methods
+  async deductCredits(userId: string, amount: number): Promise<UserUsage> {
+    const usage = await this.getUserUsage(userId);
+    const currentCredits = usage?.credits || 0;
+    return this.updateUserUsage(userId, {
+      credits: Math.max(0, currentCredits - amount)
+    });
+  }
+
+  async addCredits(userId: string, amount: number): Promise<UserUsage> {
+    const usage = await this.getUserUsage(userId);
+    const currentCredits = usage?.credits || 0;
+    return this.updateUserUsage(userId, {
+      credits: currentCredits + amount
+    });
+  }
+
+  // Test helper methods
+  async clearSessionData(sessionId: string): Promise<void> {
+    this.sessionCounts.delete(sessionId);
+    // Also clear any poster configs for this session
+    const configsToDelete: string[] = [];
+    this.posterConfigs.forEach((config, id) => {
+      if (config.sessionId === sessionId) {
+        configsToDelete.push(id);
+      }
+    });
+    configsToDelete.forEach(id => this.posterConfigs.delete(id));
+  }
+
+  async clearAllData(): Promise<void> {
+    this.posterConfigs.clear();
+    this.userUsages.clear();
+    this.sessionCounts.clear();
   }
 }
 

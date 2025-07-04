@@ -40,7 +40,17 @@ export const metadataSchema = z.object({
 export const userUsageSchema = z.object({
   userId: z.string(),
   postersCreated: z.number(),
-  lastPosterCreated: z.date()
+  lastPosterCreated: z.date(),
+  credits: z.number().default(0), // New credits field
+  plan: z.enum(['free', 'premium', 'enterprise']).default('free') // New plan field
+});
+
+export const creditPackageSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  credits: z.number(),
+  price: z.number(),
+  description: z.string()
 });
 
 export type PosterStyle = z.infer<typeof posterStyleSchema>;
@@ -51,6 +61,7 @@ export type PosterConfig = z.infer<typeof posterConfigSchema>;
 export type AIContent = z.infer<typeof aiContentSchema>;
 export type Metadata = z.infer<typeof metadataSchema>;
 export type UserUsage = z.infer<typeof userUsageSchema>;
+export type CreditPackage = z.infer<typeof creditPackageSchema>;
 
 export const createPosterConfigSchema = posterConfigSchema.omit({
   id: true,

@@ -1,0 +1,56 @@
+<svg width="400" height="500" viewBox="0 0 400 500" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#a855f7;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#ec4899;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="cardGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:0.95" />
+      <stop offset="100%" style="stop-color:#f8fafc;stop-opacity:0.95" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="400" height="500" fill="url(#bgGradient)"/>
+  
+  <!-- Decorative elements -->
+  <circle cx="80" cy="80" r="25" fill="rgba(255,255,255,0.1)"/>
+  <circle cx="320" cy="420" r="35" fill="rgba(255,255,255,0.1)"/>
+  <circle cx="350" cy="120" r="18" fill="rgba(255,255,255,0.1)"/>
+  
+  <!-- Quote marks -->
+  <text x="60" y="150" fill="rgba(255,255,255,0.3)" font-family="Arial, sans-serif" font-size="80" font-weight="bold">"</text>
+  <text x="320" y="350" fill="rgba(255,255,255,0.3)" font-family="Arial, sans-serif" font-size="80" font-weight="bold">"</text>
+  
+  <!-- Content Card -->
+  <rect x="30" y="120" width="340" height="260" rx="20" fill="url(#cardGradient)"/>
+  
+  <!-- Quote text -->
+  <text x="200" y="170" text-anchor="middle" fill="#1e293b" font-family="Arial, sans-serif" font-size="20" font-weight="bold">
+    "The future depends on
+  </text>
+  <text x="200" y="200" text-anchor="middle" fill="#1e293b" font-family="Arial, sans-serif" font-size="20" font-weight="bold">
+    what we do in the
+  </text>
+  <text x="200" y="230" text-anchor="middle" fill="#1e293b" font-family="Arial, sans-serif" font-size="20" font-weight="bold">
+    present."
+  </text>
+  
+  <!-- Attribution -->
+  <text x="200" y="280" text-anchor="middle" fill="#64748b" font-family="Arial, sans-serif" font-size="16" font-style="italic">
+    - Mahatma Gandhi
+  </text>
+  
+  <!-- Decorative line -->
+  <line x1="120" y1="300" x2="280" y2="300" stroke="#e2e8f0" stroke-width="2"/>
+  
+  <!-- Category -->
+  <text x="200" y="340" text-anchor="middle" fill="#6366f1" font-family="Arial, sans-serif" font-size="14" font-weight="bold">
+    INSPIRATION
+  </text>
+  
+  <!-- Logo/Brand -->
+  <text x="200" y="470" text-anchor="middle" fill="#ffffff" font-family="Arial, sans-serif" font-size="14" font-weight="bold">
+    PosterSnaps
+  </text>
+</svg>
