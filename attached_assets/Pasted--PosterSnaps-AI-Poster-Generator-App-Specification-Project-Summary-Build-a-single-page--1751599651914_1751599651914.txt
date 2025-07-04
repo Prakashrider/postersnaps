@@ -1,0 +1,204 @@
+📄✨ PosterSnaps – AI Poster Generator App Specification
+
+⸻
+
+🎯 Project Summary
+
+Build a single-page web application called PosterSnaps, which lets a user create visually appealing posters using:
+	•	A keyword or a pasted URL (e.g., YouTube, blog)
+	•	Simple sequential pop-ups to select preferences
+	•	AI-generated text (using OpenAI GPT-3.5)
+	•	Predefined HTML/CSS poster templates (no drag-and-drop)
+	•	Optional AI-generated background image
+	•	Rendering of the final poster to PNG/JPG for download
+	•	Free usage limited to 1 poster per user without login
+
+✅ This is not a Canva clone or drag-and-drop editor.
+
+⸻
+
+🟢 Key Features
+
+1️⃣ Landing Page with Toggle Switch
+	•	Toggle switch to choose:
+	•	“Keyword Mode”
+	•	“URL Mode”
+	•	Input field for the keyword or URL
+	•	“Generate” button to start the flow
+
+⸻
+
+2️⃣ Sequential Pop-ups / Modals
+
+After clicking “Generate,” show pop-ups one by one:
+
+✅ Poster Style Selection
+	•	Narrative
+	•	Quote
+	•	Pointers
+
+✅ Content Type Selection
+	•	Trending
+	•	Awareness
+	•	Informative
+
+✅ Page Count Selection
+	•	Slider for minimum and maximum number of pages (1–5)
+
+✅ Output Format Selection
+	•	Square (1:1)
+	•	Portrait (4:5)
+	•	Story (9:16)
+
+⸻
+
+3️⃣ URL Metadata Extraction
+	•	If URL is provided:
+	•	Use metascraper to extract:
+	•	Title
+	•	Description
+	•	If YouTube link:
+	•	Use YouTube Data API to fetch metadata
+	•	If extraction fails:
+	•	Show fallback prompt to enter text manually
+
+⸻
+
+4️⃣ AI Text Generation
+	•	Use OpenAI GPT-3.5 to:
+	•	Generate headline
+	•	Subtitle
+	•	3–5 bullet points or a caption
+	•	Prompt should incorporate:
+	•	The keyword or URL metadata
+	•	The selected style and content type
+
+⸻
+
+5️⃣ Poster Template Rendering
+	•	Choose a pre-defined HTML/CSS template matching:
+	•	Selected style
+	•	Selected output format
+	•	Inject generated text into placeholders
+
+⸻
+
+6️⃣ Image Generation (Optional)
+	•	If desired, use OpenAI DALL·E API to create a background image
+	•	Fallback to static background if not used
+
+⸻
+
+7️⃣ Rendering to PNG/JPG
+	•	Use Puppeteer to:
+	•	Render the HTML template
+	•	Export to PNG/JPG
+	•	Store rendered file in Firebase Storage or return as a direct download
+
+⸻
+
+8️⃣ Preview and Download
+	•	Show the poster preview
+	•	Allow user to download the image in chosen format
+
+⸻
+
+9️⃣ Free Poster Limit & Authentication
+	•	Allow 1 free poster per browser session
+	•	After that:
+	•	Prompt login with Firebase Auth (Google or Email)
+	•	Track poster count per user in Firestore
+
+⸻
+
+🟢 Tech Stack
+
+✅ Frontend
+	•	HTML + Tailwind CSS
+	•	Vanilla JavaScript
+	•	Simple modal library (e.g., Micromodal)
+
+✅ Backend
+	•	Node.js + Express API server
+
+✅ Integrations
+	•	OpenAI API (GPT-3.5 & DALL·E)
+	•	YouTube Data API
+	•	metascraper (for URL metadata extraction)
+
+✅ Auth & Storage
+	•	Firebase Auth
+	•	Firestore
+	•	Firebase Storage
+
+✅ Rendering
+	•	Puppeteer for server-side rendering to images
+
+✅ Hosting
+	•	Vercel (frontend + API)
+	•	Firebase Hosting if needed
+
+⸻
+
+🟢 File/Folder Structure
+
+/postersnaps
+  /frontend
+    index.html
+    styles.css
+    main.js
+  /backend
+    server.js
+    routes/
+      generate.js
+      metadata.js
+    utils/
+      openai.js
+      puppeteer.js
+      scraper.js
+  /templates
+    narrative.html
+    quote.html
+    pointers.html
+  /config
+    firebaseConfig.js
+  .env
+  package.json
+  README.md
+
+
+⸻
+
+🟢 User Flow Example
+	1.	User visits landing page.
+	2.	Chooses “URL Mode,” pastes a YouTube link.
+	3.	Clicks “Generate.”
+	4.	Pop-ups collect:
+	•	Style: Narrative
+	•	Content Type: Trending
+	•	Pages: 1–3
+	•	Format: Square
+	5.	Backend:
+	•	Extracts YouTube metadata
+	•	Generates text via GPT-3.5
+	•	Chooses a template
+	•	(Optionally) generates background with DALL·E
+	•	Renders to PNG
+	6.	User preview loads.
+	7.	User downloads poster.
+	8.	If they try again:
+	•	Prompt to login.
+
+⸻
+
+🟢 Notes for Replit AI Agent
+
+✅ Use clear, modular code.
+✅ Use environment variables for API keys:
+	•	OPENAI_API_KEY
+	•	YOUTUBE_API_KEY
+	•	FIREBASE_CONFIG
+✅ Include basic error handling and fallback messages.
+✅ Keep the frontend minimal and clean.
+✅ Use Tailwind classes rather than custom CSS where possible.
+✅ Ensure the final poster rendering is responsive for different formats.
