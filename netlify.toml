@@ -1,5 +1,5 @@
 [build]
-  publish = "dist"
+  publish = "dist/public"
   functions = "netlify/functions"
   command = "npm run build"
 
@@ -16,6 +16,12 @@
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/:splat"
+  status = 200
+
+# SPA fallback for client-side routing
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
   status = 200
 
 [functions]
