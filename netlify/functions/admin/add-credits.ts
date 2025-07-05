@@ -1,5 +1,5 @@
 import { Handler } from '@netlify/functions';
-import { storage } from '../../../server/storage';
+import { neonStorage } from '../../../client/src/lib/storage.neon';
 import { verifyFirebaseToken } from '../../../server/services/firebase';
 
 export const handler: Handler = async (event, context) => {
@@ -23,7 +23,7 @@ export const handler: Handler = async (event, context) => {
       };
     }
     
-    const updatedUsage = await storage.addCredits(userId, credits);
+    const updatedUsage = await neonStorage.addCredits(userId, credits);
     return {
       statusCode: 200,
       body: JSON.stringify({ 

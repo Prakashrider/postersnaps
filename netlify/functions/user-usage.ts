@@ -1,5 +1,5 @@
 import { Handler } from '@netlify/functions';
-import { storage } from '../../server/storage';
+import { neonStorage } from '../../client/src/lib/storage.neon';
 
 export const handler: Handler = async (event, context) => {
   if (event.httpMethod !== 'GET') {
@@ -20,7 +20,7 @@ export const handler: Handler = async (event, context) => {
       };
     }
 
-    const usage = await storage.getUserUsage(userId);
+    const usage = await neonStorage.getUserUsage(userId);
     return {
       statusCode: 200,
       body: JSON.stringify(usage || { 

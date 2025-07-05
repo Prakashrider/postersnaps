@@ -1,5 +1,5 @@
 import { Handler } from '@netlify/functions';
-import { storage } from '../../server/storage';
+import { neonStorage } from '../../client/src/lib/storage.neon';
 
 export const handler: Handler = async (event) => {
   console.log('🔍 Poster function called with:', {
@@ -29,7 +29,7 @@ export const handler: Handler = async (event) => {
     }
 
     console.log('🔍 Looking up poster config for ID:', posterId);
-    const posterConfig = await storage.getPosterConfig(posterId);
+    const posterConfig = await neonStorage.getPosterConfig(posterId);
     console.log('📊 Poster config result:', posterConfig ? 'Found' : 'Not found');
 
     if (!posterConfig) {

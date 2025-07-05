@@ -1,5 +1,5 @@
 import { Handler } from '@netlify/functions';
-import { storage } from '../../server/storage';
+import { neonStorage } from '../../client/src/lib/storage.neon';
 
 export const handler: Handler = async (event, context) => {
   if (event.httpMethod !== 'POST') {
@@ -29,7 +29,7 @@ export const handler: Handler = async (event, context) => {
     }
     
     // Add credits to user account
-    const updatedUsage = await storage.addCredits(userId, selectedPackage.credits);
+    const updatedUsage = await neonStorage.addCredits(userId, selectedPackage.credits);
     
     return {
       statusCode: 200,

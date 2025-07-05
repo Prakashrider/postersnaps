@@ -1,5 +1,6 @@
 import { Handler } from '@netlify/functions';
-import { storage } from '../../server/storage';
+import { neonStorage } from '../../client/src/lib/storage.neon';
+// Removed old storage import; fully migrated to neonStorage
 import { createPosterConfigSchema } from '../../shared/schema';
 import { extractMetadata } from '../../server/services/metadata';
 import { generateAIContent } from '../../server/services/openai';
@@ -32,7 +33,7 @@ export const handler: Handler = async (event, context) => {
     
     // Check session limit for free users
     if (!config.userId) {
-      const sessionCount = await storage.getSessionPosterCount(config.sessionId);
+      const sessionCount = await neonStorage.getSessionPosterCount(config.sessionId);
       if (sessionCount >= 1) { // Production limit: 1 poster per free session
         return {
           statusCode: 429,
@@ -48,7 +49,7 @@ export const handler: Handler = async (event, context) => {
       
       if (!isUnlimitedUser) {
         // Credits system for authenticated users
-        const usage = await storage.getUserUsage(config.userId);
+        const usage = await neonStorage.getUserUsage(config.userId);
         const userCredits = usage?.credits || 0;
         const userPlan = usage?.plan || 'free';
         
@@ -86,7 +87,7 @@ export const handler: Handler = async (event, context) => {
     }
 
     // Create poster config
-    const posterConfig = await storage.createPosterConfig({
+    const posterConfig = await neonStorage.createPosterConfig({
       ...config,
       status: 'processing'
     });
@@ -141,7 +142,7 @@ async function checkUnlimitedAccess(userId: string): Promise<boolean> {
 // Background processing function
 async function processPostersInBackground(posterId: string) {
   try {
-    const posterConfig = await storage.getPosterConfig(posterId);
+    const posterConfig = await neonStorage.getPosterConfig(posterId);
     if (!posterConfig) return;
 
     console.log('🔄 Processing poster with config:', JSON.stringify({
@@ -210,14 +211,14 @@ async function processPostersInBackground(posterId: string) {
     }
 
     // Update poster config
-    await storage.updatePosterConfig(posterId, {
+    await neonStorage.updatePosterConfig(posterId, {
       status: 'completed',
       posterUrls
     });
 
     // Update usage counters and deduct credits
     if (posterConfig.userId) {
-      const usage = await storage.getUserUsage(posterConfig.userId);
+      const usage = await neonStorage.getUserUsage(posterConfig.userId);
       
       // Check if user has unlimited access (admin email)
       // For Firebase Auth, the userId is usually the email or we can check via token
@@ -228,23 +229,23 @@ async function processPostersInBackground(posterId: string) {
       if (!isUnlimitedUser) {
         // Deduct credits (1 credit per poster generated)
         const creditsToDeduct = posterUrls.length;
-        await storage.deductCredits(posterConfig.userId, creditsToDeduct);
+        await neonStorage.deductCredits(posterConfig.userId, creditsToDeduct);
         console.log(`💳 Deducted ${creditsToDeduct} credits for user ${posterConfig.userId}`);
       } else {
         console.log(`👑 Unlimited access for admin user ${posterConfig.userId}`);
       }
       
-      await storage.updateUserUsage(posterConfig.userId, {
+      await neonStorage.updateUserUsage(posterConfig.userId, {
         postersCreated: (usage?.postersCreated || 0) + 1,
         lastPosterCreated: new Date()
       });
     } else {
-      await storage.incrementSessionPosterCount(posterConfig.sessionId);
+      await neonStorage.incrementSessionPosterCount(posterConfig.sessionId);
     }
 
   } catch (error) {
     console.error('Background processing error:', error);
-    await storage.updatePosterConfig(posterId, {
+    await neonStorage.updatePosterConfig(posterId, {
       status: 'failed',
       errorMessage: error instanceof Error ? error.message : 'Unknown error'
     });
