@@ -92,15 +92,15 @@ export const handler: Handler = async (event, context) => {
       status: 'processing'
     });
 
-    // Process in background
-    processPostersInBackground(posterConfig.id);
+    // Synchronously process posters
+    await processPostersInBackground(posterConfig.id);
 
     return {
       statusCode: 200,
       body: JSON.stringify({ 
         success: true, 
         posterId: posterConfig.id,
-        message: 'Poster generation started'
+        message: 'Poster generation completed'
       }),
     };
   } catch (error) {
