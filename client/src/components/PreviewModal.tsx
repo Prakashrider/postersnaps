@@ -20,12 +20,37 @@ export default function PreviewModal({
   onCreateAnother
 }: PreviewModalProps) {
   const handleDownload = (format: 'png' | 'jpg', url: string) => {
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `poster.${format}`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    if (url.startsWith('data:')) {
+      // Convert base64 data URL to Blob and download
+      fetch(url)
+        .then(res => res.blob())
+        .then(blob => {
+          const blobUrl = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = blobUrl;
+          link.download = `poster.${format}`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(blobUrl);
+        })
+        .catch(() => {
+          // Fallback to original method if fetch fails
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `poster.${format}`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        });
+    } else {
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `poster.${format}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
   };
 
   if (!isOpen) return null;
