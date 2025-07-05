@@ -7,13 +7,15 @@
       "use": "@vercel/node"
     },
     {
-      "src": "dist/public/**",
-      "use": "@vercel/static"
+      "src": "client/**",
+      "use": "@vercel/static-build",
+      "config": { "distDir": "dist" }
     }
   ],
   "routes": [
     { "src": "/api/(.*)", "dest": "/api/$1" },
-    { "src": "/(.*)", "dest": "/dist/public/$1" }
+    { "handle": "filesystem" },
+    { "src": "/(.*)", "dest": "/index.html" }
   ],
   "env": {
     "NODE_ENV": "production"
