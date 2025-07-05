@@ -23,8 +23,8 @@ export async function renderPoster(params: RenderParams): Promise<string[]> {
   }, null, 2));
 
   try {
-    // Try Puppeteer first, fallback to SVG generation
-    if (process.env.NODE_ENV === 'production' || process.env.FORCE_FALLBACK_RENDERER) {
+    // Always use SVG generation in Netlify Functions (serverless environment)
+    if (process.env.NETLIFY || process.env.NODE_ENV === 'production' || process.env.FORCE_FALLBACK_RENDERER) {
       return await generateSVGPosters(content, style, format, pages);
     }
     
@@ -133,37 +133,66 @@ async function generateSVGPosters(content: AIContent, style: PosterStyle, format
 function generatePosterSVG(content: AIContent, style: PosterStyle, format: OutputFormat, dimensions: { width: number; height: number }): string {
   const { width, height } = dimensions;
   
-  // Choose colors based on style
-  const styleColors = {
-    narrative: { bg: '#667eea', accent: '#764ba2', text: '#ffffff' },
-    quote: { bg: '#ff6b6b', accent: '#feca57', text: '#ffffff' },
-    pointers: { bg: '#4ecdc4', accent: '#45b7aa', text: '#ffffff' }
+  // Choose colors and layout based on style
+  const styleConfig = {
+    narrative: { 
+      bg: '#667eea', 
+      accent: '#764ba2', 
+      text: '#ffffff',
+      layout: 'story-style'
+    },
+    quote: { 
+      bg: '#ff6b6b', 
+      accent: '#feca57', 
+      text: '#ffffff',
+      layout: 'quote-style'
+    },
+    pointers: { 
+      bg: '#4ecdc4', 
+      accent: '#45b7aa', 
+      text: '#ffffff',
+      layout: 'list-style'
+    }
   };
   
-  const colors = styleColors[style];
+  const config = styleConfig[style];
   
-  const bulletPoints = content.bulletPoints.map((point, index) => 
-    `<text x="80" y="${380 + (index * 60)}" font-family="Inter, sans-serif" font-size="24" fill="${colors.text}" font-weight="400">• ${point}</text>`
-  ).join('\n      ');
+  // Generate bullet points HTML
+  const bulletPoints = content.bulletPoints.map((point, index) => {
+    const yPos = 380 + (index * 60);
+    return `<text x="80" y="${yPos}" font-family="Inter, sans-serif" font-size="24" fill="${config.text}" font-weight="400">• ${point}</text>`;
+  }).join('\n      ');
 
+  // Calculate content area height
+  const contentHeight = content.bulletPoints.length * 60 + 40;
+  
   return `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
     <defs>
       <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" style="stop-color:${colors.bg};stop-opacity:1" />
-        <stop offset="100%" style="stop-color:${colors.accent};stop-opacity:1" />
+        <stop offset="0%" style="stop-color:${config.bg};stop-opacity:1" />
+        <stop offset="100%" style="stop-color:${config.accent};stop-opacity:1" />
       </linearGradient>
+      <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+        <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="rgba(0,0,0,0.3)"/>
+      </filter>
     </defs>
     
     <rect width="100%" height="100%" fill="url(#gradient)"/>
     
-    <text x="60" y="120" font-family="Inter, sans-serif" font-size="48" fill="${colors.text}" font-weight="700">${content.headline}</text>
-    <text x="60" y="200" font-family="Inter, sans-serif" font-size="28" fill="${colors.text}" font-weight="400" opacity="0.9">${content.subtitle}</text>
+    <!-- Main content area -->
+    <rect x="40" y="80" width="${width-80}" height="${height-160}" fill="rgba(255,255,255,0.05)" rx="20" filter="url(#shadow)"/>
     
-    <rect x="40" y="280" width="${width-80}" height="${content.bulletPoints.length * 60 + 40}" fill="rgba(255,255,255,0.1)" rx="20"/>
+    <!-- Headlines -->
+    <text x="60" y="140" font-family="Inter, sans-serif" font-size="42" fill="${config.text}" font-weight="700" text-anchor="start">${content.headline}</text>
+    <text x="60" y="200" font-family="Inter, sans-serif" font-size="24" fill="${config.text}" font-weight="400" opacity="0.9">${content.subtitle}</text>
+    
+    <!-- Content area -->
+    <rect x="40" y="280" width="${width-80}" height="${contentHeight}" fill="rgba(255,255,255,0.1)" rx="15"/>
     
     ${bulletPoints}
     
-    <text x="60" y="${height-40}" font-family="Inter, sans-serif" font-size="16" fill="${colors.text}" opacity="0.7">Generated with PosterSnaps AI</text>
+    <!-- Footer -->
+    <text x="60" y="${height-40}" font-family="Inter, sans-serif" font-size="16" fill="${config.text}" opacity="0.7">Generated with PosterSnaps AI</text>
   </svg>`;
 }
 

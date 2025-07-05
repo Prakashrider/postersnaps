@@ -239,4 +239,5 @@ export class FileStorage implements IStorage {
   }
 }
 
-export const storage = new FileStorage();
+// Use different storage based on environment
+export const storage = process.env.NETLIFY ? new MemStorage() : new FileStorage();
