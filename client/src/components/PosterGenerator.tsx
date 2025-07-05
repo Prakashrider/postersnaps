@@ -38,7 +38,7 @@ export default function PosterGenerator({ user }: PosterGeneratorProps) {
   const { toast } = useToast();
 
   const generatePosterMutation = useMutation({
-    mutationFn: (data: any) => apiRequest('POST', '/api/generate-poster', data),
+    mutationFn: (data: any) => apiRequest('POST', '/.netlify/functions/generate-poster', data),
     onSuccess: async (response) => {
       const data = await response.json();
       setCurrentPosterId(data.posterId);
@@ -64,10 +64,10 @@ export default function PosterGenerator({ user }: PosterGeneratorProps) {
   });
 
   const posterQuery = useQuery({
-    queryKey: [`/api/poster/${currentPosterId}`],
+    queryKey: [`/.netlify/functions/poster?id=${currentPosterId}`],
     enabled: !!currentPosterId,
     queryFn: async () => {
-      const response = await apiRequest('GET', `/api/poster/${currentPosterId}`);
+      const response = await apiRequest('GET', `/.netlify/functions/poster?id=${currentPosterId}`);
       return await response.json();
     },
     refetchInterval: (query) => {
