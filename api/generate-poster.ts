@@ -1,21 +1,15 @@
-import { Router } from 'express';
-import { z } from 'zod';
-import { storage } from './storage';
-import { createPosterConfigSchema } from '@shared/schema';
-import { extractMetadata } from './services/metadata';
-import { generateAIContent } from './services/openai';
-import { renderPoster } from './services/renderer';
-import { verifyFirebaseToken } from './services/firebase';
+import { VercelRequest, VercelResponse } from '@vercel/node';
+import { storage } from '../server/storage';
+import { createPosterConfigSchema } from '../shared/schema';
+import { extractMetadata } from '../server/services/metadata';
+import { generateAIContent } from '../server/services/openai';
+import { renderPoster } from '../server/services/renderer';
+import { verifyFirebaseToken } from '../server/services/firebase';
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
 
-const router = Router();
-
-// Health check endpoint
-router.get('/health', (req, res) => {
-  res.json({ status: 'OK', message: 'PosterSnaps API is running!' });
-});
-
-// Generate poster endpoint
-router.post('/generate-poster', async (req, res) => {
   try {
     console.log('📝 Received poster generation request:', JSON.stringify(req.body, null, 2));
     
@@ -91,197 +85,7 @@ router.post('/generate-poster', async (req, res) => {
     console.error('Generate poster error:', error);
     res.status(500).json({ error: 'Failed to start poster generation' });
   }
-});
-
-// Get poster status endpoint
-router.get('/poster/:id', async (req, res) => {
-  try {
-    const id = req.params.id;
-    const posterConfig = await storage.getPosterConfig(id);
-    
-    if (!posterConfig) {
-      return res.status(404).json({ error: 'Poster not found' });
-    }
-
-    res.json(posterConfig);
-  } catch (error) {
-    console.error('Get poster error:', error);
-    res.status(500).json({ error: 'Failed to get poster' });
-  }
-});
-
-// Extract metadata endpoint
-router.post('/extract-metadata', async (req, res) => {
-  try {
-    const urlSchema = z.object({ url: z.string().url() });
-    const result = urlSchema.safeParse(req.body);
-    
-    if (!result.success) {
-      return res.status(400).json({ error: 'Invalid URL' });
-    }
-    
-    const { url } = result.data;
-    const metadata = await extractMetadata(url);
-    res.json(metadata);
-  } catch (error) {
-    console.error('Extract metadata error:', error);
-    res.status(500).json({ error: 'Failed to extract metadata' });
-  }
-});
-
-// Check auth status endpoint
-router.post('/check-auth', async (req, res) => {
-  try {
-    const authSchema = z.object({ token: z.string().optional() });
-    const result = authSchema.safeParse(req.body);
-    
-    if (!result.success) {
-      return res.status(400).json({ error: 'Invalid request' });
-    }
-    
-    const { token } = result.data;
-    
-    if (!token) {
-      return res.json({ authenticated: false });
-    }
-
-    const user = await verifyFirebaseToken(token);
-    res.json({ authenticated: true, user });
-  } catch (error) {
-    console.error('Check auth error:', error);
-    res.json({ authenticated: false });
-  }
-});
-
-// Get user usage endpoint
-router.get('/user-usage/:userId', async (req, res) => {
-  try {
-    const userId = req.params.userId;
-    const usage = await storage.getUserUsage(userId);
-    res.json(usage || { 
-      userId, 
-      postersCreated: 0, 
-      lastPosterCreated: new Date(),
-      credits: 5,
-      plan: 'free'
-    });
-  } catch (error) {
-    console.error('Get user usage error:', error);
-    res.status(500).json({ error: 'Failed to get user usage' });
-  }
-});
-
-// Credits purchase endpoint (placeholder for future payment integration)
-router.post('/purchase-credits', async (req, res) => {
-  try {
-    const { userId, packageId, paymentToken } = req.body;
-    
-    // TODO: Implement payment processing here
-    // For now, just add credits for testing
-    const creditPackages = {
-      'starter': { credits: 10, price: 5 },
-      'pro': { credits: 50, price: 20 },
-      'unlimited': { credits: 999, price: 50 }
-    };
-    
-    const selectedPackage = creditPackages[packageId as keyof typeof creditPackages];
-    if (!selectedPackage) {
-      return res.status(400).json({ error: 'Invalid package selected' });
-    }
-    
-    // Add credits to user account
-    const updatedUsage = await storage.addCredits(userId, selectedPackage.credits);
-    
-    res.json({ 
-      success: true, 
-      message: `${selectedPackage.credits} credits added to your account`,
-      newBalance: updatedUsage.credits
-    });
-  } catch (error) {
-    console.error('Purchase credits error:', error);
-    res.status(500).json({ error: 'Failed to process credit purchase' });
-  }
-});
-
-// Admin endpoints for credit management
-router.post('/admin/add-credits', async (req, res) => {
-  try {
-    const { adminToken, userId, credits } = req.body;
-    
-    // Verify admin access
-    const admin = await verifyFirebaseToken(adminToken);
-    const adminEmail = process.env.ADMIN_EMAIL || 'maritimeriderprakash@gmail.com';
-    if (!admin || admin.email !== adminEmail) {
-      return res.status(403).json({ error: 'Admin access required' });
-    }
-    
-    const updatedUsage = await storage.addCredits(userId, credits);
-    res.json({ 
-      success: true, 
-      message: `${credits} credits added to user ${userId}`,
-      newBalance: updatedUsage.credits
-    });
-  } catch (error) {
-    console.error('Admin add credits error:', error);
-    res.status(500).json({ error: 'Failed to add credits' });
-  }
-});
-
-router.get('/admin/users', async (req, res) => {
-  try {
-    const adminToken = req.headers.authorization?.split(' ')[1];
-    
-    // Verify admin access
-    const admin = await verifyFirebaseToken(adminToken || '');
-    const adminEmail = process.env.ADMIN_EMAIL || 'maritimeriderprakash@gmail.com';
-    if (!admin || admin.email !== adminEmail) {
-      return res.status(403).json({ error: 'Admin access required' });
-    }
-    
-    // In production, you'd fetch from a proper database
-    // For now, return a simple response
-    res.json({ 
-      message: 'Admin access granted',
-      adminEmail: admin.email,
-      timestamp: new Date().toISOString()
-    });
-  } catch (error) {
-    console.error('Admin users error:', error);
-    res.status(500).json({ error: 'Failed to fetch users' });
-  }
-});
-
-// Credit packages endpoint
-router.get('/credit-packages', (req, res) => {
-  const packages = [
-    {
-      id: 'starter',
-      name: 'Starter Pack',
-      credits: 10,
-      price: 5,
-      description: 'Perfect for trying out PosterSnaps',
-      popular: false
-    },
-    {
-      id: 'pro',
-      name: 'Pro Pack',
-      credits: 50,
-      price: 20,
-      description: 'Great for regular users',
-      popular: true
-    },
-    {
-      id: 'unlimited',
-      name: 'Unlimited Pack',
-      credits: 999,
-      price: 50,
-      description: 'For power users and businesses',
-      popular: false
-    }
-  ];
-  
-  res.json(packages);
-});
+}
 
 // Helper function to check unlimited access
 async function checkUnlimitedAccess(userId: string): Promise<boolean> {
@@ -408,5 +212,3 @@ async function processPostersInBackground(posterId: string) {
     });
   }
 }
-
-export default router;
