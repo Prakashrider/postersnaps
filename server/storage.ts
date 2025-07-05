@@ -1,4 +1,6 @@
 import { PosterConfig, UserUsage } from '@shared/schema';
+import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'fs';
+import { join } from 'path';
 
 export interface IStorage {
   // Poster configurations
@@ -120,4 +122,121 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+export class FileStorage implements IStorage {
+  private dataDir: string;
+
+  constructor() {
+    this.dataDir = join(process.cwd(), '.storage');
+    if (!existsSync(this.dataDir)) {
+      mkdirSync(this.dataDir, { recursive: true });
+    }
+  }
+
+  private writeData(filename: string, data: any): void {
+    const filepath = join(this.dataDir, filename);
+    writeFileSync(filepath, JSON.stringify(data, null, 2));
+  }
+
+  private readData(filename: string): any {
+    const filepath = join(this.dataDir, filename);
+    if (!existsSync(filepath)) {
+      return null;
+    }
+    try {
+      return JSON.parse(readFileSync(filepath, 'utf-8'));
+    } catch {
+      return null;
+    }
+  }
+
+  async createPosterConfig(config: Omit<PosterConfig, 'id' | 'createdAt'>): Promise<PosterConfig> {
+    const id = Math.random().toString(36).substring(2, 15);
+    const posterConfig: PosterConfig = {
+      ...config,
+      id,
+      createdAt: new Date()
+    };
+    this.writeData(`poster-${id}.json`, posterConfig);
+    console.log('💾 Saved poster config to file:', id);
+    return posterConfig;
+  }
+
+  async getPosterConfig(id: string): Promise<PosterConfig | null> {
+    const data = this.readData(`poster-${id}.json`);
+    console.log('📖 Read poster config from file:', id, data ? 'Found' : 'Not found');
+    return data;
+  }
+
+  async updatePosterConfig(id: string, updates: Partial<PosterConfig>): Promise<PosterConfig> {
+    const existing = await this.getPosterConfig(id);
+    if (!existing) {
+      throw new Error('Poster config not found');
+    }
+    const updated = { ...existing, ...updates };
+    this.writeData(`poster-${id}.json`, updated);
+    console.log('📝 Updated poster config in file:', id);
+    return updated;
+  }
+
+  async deletePosterConfig(id: string): Promise<void> {
+    // Implementation not needed for now
+  }
+
+  async getUserUsage(userId: string): Promise<UserUsage | null> {
+    return this.readData(`user-${userId}.json`);
+  }
+
+  async updateUserUsage(userId: string, updates: Partial<UserUsage>): Promise<UserUsage> {
+    const existing = await this.getUserUsage(userId) || {
+      userId,
+      postersCreated: 0,
+      lastPosterCreated: new Date(),
+      credits: 5,
+      plan: 'free'
+    };
+    const updated = { ...existing, ...updates };
+    this.writeData(`user-${userId}.json`, updated);
+    return updated;
+  }
+
+  async getSessionPosterCount(sessionId: string): Promise<number> {
+    const data = this.readData(`session-${sessionId}.json`);
+    return data?.count || 0;
+  }
+
+  async incrementSessionPosterCount(sessionId: string): Promise<void> {
+    const count = await this.getSessionPosterCount(sessionId);
+    this.writeData(`session-${sessionId}.json`, { count: count + 1 });
+  }
+
+  async deductCredits(userId: string, amount: number): Promise<UserUsage> {
+    const usage = await this.getUserUsage(userId);
+    if (!usage) {
+      throw new Error('User not found');
+    }
+    const newCredits = Math.max(0, usage.credits - amount);
+    return this.updateUserUsage(userId, { credits: newCredits });
+  }
+
+  async addCredits(userId: string, amount: number): Promise<UserUsage> {
+    const usage = await this.getUserUsage(userId) || {
+      userId,
+      postersCreated: 0,
+      lastPosterCreated: new Date(),
+      credits: 5,
+      plan: 'free'
+    };
+    const newCredits = usage.credits + amount;
+    return this.updateUserUsage(userId, { credits: newCredits });
+  }
+
+  async clearSessionData(sessionId: string): Promise<void> {
+    // Implementation not needed for now
+  }
+
+  async clearAllData(): Promise<void> {
+    // Implementation not needed for now
+  }
+}
+
+export const storage = new FileStorage();

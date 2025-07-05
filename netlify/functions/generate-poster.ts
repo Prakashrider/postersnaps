@@ -1,22 +1,30 @@
-import { VercelRequest, VercelResponse } from '@vercel/node';
-import { storage } from '../server/storage';
-import { createPosterConfigSchema } from '../shared/schema';
-import { extractMetadata } from '../server/services/metadata';
-import { generateAIContent } from '../server/services/openai';
-import { renderPoster } from '../server/services/renderer';
-import { verifyFirebaseToken } from '../server/services/firebase';
-export default async function handler(req: VercelRequest, res: VercelResponse) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+import { Handler } from '@netlify/functions';
+import { storage } from '../../server/storage';
+import { createPosterConfigSchema } from '../../shared/schema';
+import { extractMetadata } from '../../server/services/metadata';
+import { generateAIContent } from '../../server/services/openai';
+import { renderPoster } from '../../server/services/renderer';
+import { verifyFirebaseToken } from '../../server/services/firebase';
+
+export const handler: Handler = async (event, context) => {
+  if (event.httpMethod !== 'POST') {
+    return {
+      statusCode: 405,
+      body: JSON.stringify({ error: 'Method not allowed' }),
+    };
   }
 
   try {
-    console.log('📝 Received poster generation request:', JSON.stringify(req.body, null, 2));
+    const body = JSON.parse(event.body || '{}');
+    console.log('📝 Received poster generation request:', JSON.stringify(body, null, 2));
     
-    const result = createPosterConfigSchema.safeParse(req.body);
+    const result = createPosterConfigSchema.safeParse(body);
     if (!result.success) {
       console.error('❌ Validation failed:', result.error.errors);
-      return res.status(400).json({ error: 'Invalid request data', details: result.error.errors });
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ error: 'Invalid request data', details: result.error.errors }),
+      };
     }
     
     const config = result.data;
@@ -26,11 +34,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!config.userId) {
       const sessionCount = await storage.getSessionPosterCount(config.sessionId);
       if (sessionCount >= 1) { // Production limit: 1 poster per free session
-        return res.status(429).json({ error: 'Free limit reached. Please sign in to continue.' });
+        return {
+          statusCode: 429,
+          body: JSON.stringify({ error: 'Free limit reached. Please sign in to continue.' }),
+        };
       }
     } else {
       // Check if user has unlimited access
-      const user = await verifyFirebaseToken(req.headers.authorization?.split(' ')[1] || '');
+      const authHeader = event.headers.authorization || event.headers.Authorization;
+      const user = await verifyFirebaseToken(authHeader?.split(' ')[1] || '');
       const adminEmail = process.env.ADMIN_EMAIL || 'maritimeriderprakash@gmail.com';
       const isUnlimitedUser = user?.email === adminEmail;
       
@@ -46,22 +58,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const totalCreditsNeeded = creditsRequired * estimatedPosters;
         
         if (userPlan === 'free' && userCredits < totalCreditsNeeded) {
-          return res.status(429).json({ 
-            error: 'Insufficient credits. Purchase credits or upgrade to Premium.',
-            creditsRequired: totalCreditsNeeded,
-            creditsAvailable: userCredits,
-            suggestedAction: 'upgrade'
-          });
+          return {
+            statusCode: 429,
+            body: JSON.stringify({ 
+              error: 'Insufficient credits. Purchase credits or upgrade to Premium.',
+              creditsRequired: totalCreditsNeeded,
+              creditsAvailable: userCredits,
+              suggestedAction: 'upgrade'
+            }),
+          };
         }
         
         // For premium users, give generous daily limits instead of credits
         if (userPlan !== 'premium' && userPlan !== 'enterprise') {
           const dailyLimit = 50;
           if ((usage?.postersCreated || 0) >= dailyLimit) {
-            return res.status(429).json({ 
-              error: 'Daily limit reached. Upgrade to Premium for unlimited access.',
-              creditsRemaining: userCredits 
-            });
+            return {
+              statusCode: 429,
+              body: JSON.stringify({ 
+                error: 'Daily limit reached. Upgrade to Premium for unlimited access.',
+                creditsRemaining: userCredits 
+              }),
+            };
           }
         }
       }
@@ -76,16 +94,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Process in background
     processPostersInBackground(posterConfig.id);
 
-    res.json({ 
-      success: true, 
-      posterId: posterConfig.id,
-      message: 'Poster generation started'
-    });
+    return {
+      statusCode: 200,
+      body: JSON.stringify({ 
+        success: true, 
+        posterId: posterConfig.id,
+        message: 'Poster generation started'
+      }),
+    };
   } catch (error) {
     console.error('Generate poster error:', error);
-    res.status(500).json({ error: 'Failed to start poster generation' });
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: 'Failed to start poster generation' }),
+    };
   }
-}
+};
 
 // Helper function to check unlimited access
 async function checkUnlimitedAccess(userId: string): Promise<boolean> {

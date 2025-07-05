@@ -12,12 +12,18 @@ export async function apiRequest(
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
-  const res = await fetch(url, {
+  let fetchUrl = url;
+  if (url.startsWith("/api/poster/")) {
+    const id = url.substring("/api/poster/".length);
+    fetchUrl = `/.netlify/functions/poster?id=${id}`;
+  } else if (url.startsWith("/api/user-usage/")) {
+    const userId = url.substring("/api/user-usage/".length);
+    fetchUrl = `/.netlify/functions/user-usage?userId=${userId}`;
+  }
+
+  const res = await fetch(fetchUrl, {
     method,
-    headers: {
-      ...(data ? { "Content-Type": "application/json" } : {}),
-      "x-vercel-protection-bypass": "QuRurvqNUH7gZcCh5cXKGR4g5H3Wq3KG",
-    },
+    headers: data ? { "Content-Type": "application/json" } : {},
     body: data ? JSON.stringify(data) : undefined,
     credentials: "include",
   });
@@ -32,7 +38,18 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    const res = await fetch(queryKey[0] as string, {
+    let fetchUrl = queryKey[0] as string;
+    
+    // Handle dynamic routes for GET requests too
+    if (fetchUrl.startsWith("/api/poster/")) {
+      const id = fetchUrl.substring("/api/poster/".length);
+      fetchUrl = `/.netlify/functions/poster?id=${id}`;
+    } else if (fetchUrl.startsWith("/api/user-usage/")) {
+      const userId = fetchUrl.substring("/api/user-usage/".length);
+      fetchUrl = `/.netlify/functions/user-usage?userId=${userId}`;
+    }
+    
+    const res = await fetch(fetchUrl, {
       credentials: "include",
     });
 

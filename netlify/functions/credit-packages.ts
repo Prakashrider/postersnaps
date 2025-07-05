@@ -1,8 +1,11 @@
-import { VercelRequest, VercelResponse } from '@vercel/node';
+import { Handler } from '@netlify/functions';
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
+export const handler: Handler = async (event, context) => {
+  if (event.httpMethod !== 'GET') {
+    return {
+      statusCode: 405,
+      body: JSON.stringify({ error: 'Method not allowed' }),
+    };
   }
 
   const packages = [
@@ -32,5 +35,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
   ];
   
-  res.json(packages);
-}
+  return {
+    statusCode: 200,
+    body: JSON.stringify(packages),
+  };
+};

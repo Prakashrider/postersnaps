@@ -1,0 +1,22 @@
+[build]
+  publish = "dist"
+  functions = "netlify/functions"
+  command = "npm run build"
+
+[[redirects]]
+  from = "/api/poster/*"
+  to = "/.netlify/functions/poster?id=:splat"
+  status = 200
+
+[[redirects]]
+  from = "/api/user-usage/*"
+  to = "/.netlify/functions/user-usage?userId=:splat"
+  status = 200
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+
+[functions]
+  node_bundler = "esbuild"
