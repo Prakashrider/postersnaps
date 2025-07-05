@@ -14,7 +14,10 @@ export async function apiRequest(
 ): Promise<Response> {
   const res = await fetch(url, {
     method,
-    headers: data ? { "Content-Type": "application/json" } : {},
+    headers: {
+      ...(data ? { "Content-Type": "application/json" } : {}),
+      "x-vercel-protection-bypass": "QuRurvqNUH7gZcCh5cXKGR4g5H3Wq3KG",
+    },
     body: data ? JSON.stringify(data) : undefined,
     credentials: "include",
   });
