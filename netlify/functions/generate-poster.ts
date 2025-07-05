@@ -104,9 +104,23 @@ export const handler: Handler = async (event, context) => {
     };
   } catch (error) {
     console.error('Generate poster error:', error);
+    console.error('Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      type: typeof error,
+      environment: {
+        NODE_ENV: process.env.NODE_ENV,
+        NETLIFY: process.env.NETLIFY,
+        hasOpenAI: !!process.env.OPENAI_API_KEY
+      }
+    });
+    
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: 'Failed to start poster generation' }),
+      body: JSON.stringify({ 
+        error: 'Failed to start poster generation',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      }),
     };
   }
 };
