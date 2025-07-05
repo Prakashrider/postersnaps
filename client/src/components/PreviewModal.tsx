@@ -20,29 +20,30 @@ export default function PreviewModal({
   onCreateAnother
 }: PreviewModalProps) {
   const handleDownload = (format: 'png' | 'jpg', url: string) => {
-    if (url.startsWith('data:')) {
-      // Convert base64 data URL to Blob and download
-      fetch(url)
-        .then(res => res.blob())
-        .then(blob => {
+    if (url.startsWith('data:image/svg+xml')) {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+        ctx.drawImage(img, 0, 0);
+        canvas.toBlob((blob) => {
+          if (!blob) return;
           const blobUrl = URL.createObjectURL(blob);
-          const link = document.createElement('a');
+          const link = document.createElement("a");
           link.href = blobUrl;
           link.download = `poster.${format}`;
           document.body.appendChild(link);
           link.click();
           document.body.removeChild(link);
           URL.revokeObjectURL(blobUrl);
-        })
-        .catch(() => {
-          // Fallback to original method if fetch fails
-          const link = document.createElement('a');
-          link.href = url;
-          link.download = `poster.${format}`;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-        });
+        }, `image/${format}`);
+      };
+      img.src = url;
+      return;
     } else {
       const link = document.createElement('a');
       link.href = url;
