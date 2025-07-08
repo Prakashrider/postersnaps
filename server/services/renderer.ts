@@ -1,4 +1,5 @@
-import puppeteer from 'puppeteer';
+import chromium from '@sparticuz/chromium';
+import puppeteer from 'puppeteer-core';
 import { PosterStyle, OutputFormat, AIContent } from '@shared/schema';
 import { readFileSync } from 'fs';
 import { join } from 'path';
@@ -25,46 +26,60 @@ export async function renderPoster(params: RenderParams): Promise<string[]> {
   try {
     // Always use SVG generation in Netlify Functions (serverless environment)
     if (process.env.NETLIFY || process.env.NODE_ENV === 'production' || process.env.FORCE_FALLBACK_RENDERER) {
-      return await generateSVGPosters(content, style, format, pages);
+      // Try Puppeteer with serverless Chromium first
+      try {
+        const browser = await puppeteer.launch({
+          args: chromium.args,
+          executablePath: await chromium.executablePath(),
+          headless: true,
+        });
+        const posterUrls: string[] = [];
+        for (let i = 0; i < pages; i++) {
+          const page = await browser.newPage();
+          const dimensions = getFormatDimensions(format);
+          await page.setViewport(dimensions);
+          const html = await generatePosterHTML(content, style, format, i);
+          await page.setContent(html, { waitUntil: 'networkidle0' });
+          const screenshot = await page.screenshot({
+            type: 'png',
+            fullPage: true,
+            omitBackground: false
+          });
+          const base64 = Buffer.from(screenshot).toString('base64');
+          const dataUrl = `data:image/png;base64,${base64}`;
+          posterUrls.push(dataUrl);
+          await page.close();
+        }
+        await browser.close();
+        return posterUrls;
+      } catch (chromiumError) {
+        console.error('Puppeteer/Chromium rendering error:', chromiumError);
+        console.log('Falling back to SVG rendering...');
+        return await generateSVGPosters(content, style, format, pages);
+      }
     }
-    
-    // Launch browser
+    // For local/dev, use regular Puppeteer (if desired)
     const browser = await puppeteer.launch({
       headless: true,
       args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
     });
-
     const posterUrls: string[] = [];
-    
-    // Generate each page
     for (let i = 0; i < pages; i++) {
       const page = await browser.newPage();
-      
-      // Set viewport based on format
       const dimensions = getFormatDimensions(format);
       await page.setViewport(dimensions);
-      
-      // Generate HTML content
       const html = await generatePosterHTML(content, style, format, i);
-      
-      // Set content and wait for fonts to load
       await page.setContent(html, { waitUntil: 'networkidle0' });
-      
-      // Take screenshot
       const screenshot = await page.screenshot({
         type: 'png',
         fullPage: true,
         omitBackground: false
       });
-      
-      // Convert to base64 URL (in production, upload to Firebase Storage)
       const base64 = Buffer.from(screenshot).toString('base64');
       const dataUrl = `data:image/png;base64,${base64}`;
       posterUrls.push(dataUrl);
-      
       await page.close();
     }
-    
     await browser.close();
     return posterUrls;
   } catch (error) {
