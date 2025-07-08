@@ -24,9 +24,7 @@ export async function renderPoster(params: RenderParams): Promise<string[]> {
   }, null, 2));
 
   try {
-    // Always use SVG generation in Netlify Functions (serverless environment)
     if (process.env.NETLIFY || process.env.NODE_ENV === 'production' || process.env.FORCE_FALLBACK_RENDERER) {
-      // Try Puppeteer with serverless Chromium first
       try {
         const browser = await puppeteer.launch({
           args: chromium.args,
@@ -58,11 +56,9 @@ export async function renderPoster(params: RenderParams): Promise<string[]> {
         return await generateSVGPosters(content, style, format, pages);
       }
     }
-    // For local/dev, use regular Puppeteer (if desired)
-    const browser = await puppeteer.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
-    });
+
+    // Local/dev fallback
+    const browser = await puppeteer.launch();
     const posterUrls: string[] = [];
     for (let i = 0; i < pages; i++) {
       const page = await browser.newPage();

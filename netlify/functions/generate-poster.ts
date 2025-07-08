@@ -212,6 +212,14 @@ async function processPostersInBackground(posterId: string) {
         bulletCount: aiContent.bulletPoints.length
       });
 
+      // ⚠️ IMPORTANT: Make sure renderPoster uses puppeteer.launch with executablePath from @sparticuz/chromium.
+      // Example:
+      // const browser = await puppeteer.launch({
+      //   args: chromium.args,
+      //   executablePath: await chromium.executablePath(),
+      //   headless: true
+      // });
+
       // Render single poster
       const singlePosterUrls = await renderPoster({
         content: aiContent,
