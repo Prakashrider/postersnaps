@@ -92,22 +92,31 @@ export const handler: Handler = async (event, context) => {
       status: 'processing'
     });
 
-    // Start background processing (non-blocking)
-    setTimeout(() => {
-      processPostersInBackground(posterConfig.id).catch((err) => {
-        console.error('Background poster generation error:', err);
-      });
-    }, 0);
-
-    // Respond immediately so function never times out
-    return {
-      statusCode: 200,
-      body: JSON.stringify({ 
-        success: true, 
-        posterId: posterConfig.id,
-        message: 'Poster generation started'
-      }),
-    };
+    // Run poster generation synchronously for debugging (not for production)
+    try {
+      await processPostersInBackground(posterConfig.id);
+      // After processing, fetch updated config for status
+      const updatedConfig = await neonStorage.getPosterConfig(posterConfig.id);
+      return {
+        statusCode: 200,
+        body: JSON.stringify({
+          success: updatedConfig?.status === 'completed',
+          posterId: posterConfig.id,
+          status: updatedConfig?.status,
+          message: updatedConfig?.status === 'completed' ? 'Poster generation completed' : 'Poster generation failed',
+          error: updatedConfig?.errorMessage || null
+        })
+      };
+    } catch (err) {
+      console.error('Synchronous poster generation error:', err);
+      return {
+        statusCode: 500,
+        body: JSON.stringify({
+          error: 'Poster generation failed',
+          details: err instanceof Error ? err.message : 'Unknown error'
+        })
+      };
+    }
   } catch (error) {
     console.error('Generate poster error:', error);
     console.error('Error details:', {
