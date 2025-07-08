@@ -92,15 +92,20 @@ export const handler: Handler = async (event, context) => {
       status: 'processing'
     });
 
-    // Synchronously process posters
-    await processPostersInBackground(posterConfig.id);
+    // Start background processing (non-blocking)
+    setTimeout(() => {
+      processPostersInBackground(posterConfig.id).catch((err) => {
+        console.error('Background poster generation error:', err);
+      });
+    }, 0);
 
+    // Respond immediately so function never times out
     return {
       statusCode: 200,
       body: JSON.stringify({ 
         success: true, 
         posterId: posterConfig.id,
-        message: 'Poster generation completed'
+        message: 'Poster generation started'
       }),
     };
   } catch (error) {

@@ -23,19 +23,44 @@ interface PosterGeneratorProps {
 }
 
 export default function PosterGenerator({ user }: PosterGeneratorProps) {
-  const [inputMode, setInputMode] = useState<'keyword' | 'url'>('keyword');
-  const [inputValue, setInputValue] = useState('');
-  const [currentStep, setCurrentStep] = useState<'input' | 'config' | 'preview' | 'auth'>('input');
+  const [inputMode, setInputMode] = useState<'keyword' | 'url'>(() => {
+    return localStorage.getItem('ps_inputMode') as 'keyword' | 'url' || 'keyword';
+  });
+  const [inputValue, setInputValue] = useState(() => {
+    return localStorage.getItem('ps_inputValue') || '';
+  });
+  const [currentStep, setCurrentStep] = useState<'input' | 'config' | 'preview' | 'auth'>(() => {
+    return (localStorage.getItem('ps_currentStep') as any) || 'input';
+  });
   const [sessionId] = useState(() => Math.random().toString(36).substring(2, 15));
-  const [posterConfig, setPosterConfig] = useState({
-    style: 'narrative' as const,
-    contentType: 'trending' as const,
-    outputFormat: 'square' as const,
-    minPages: 2,
-    maxPages: 4
+  const [posterConfig, setPosterConfig] = useState(() => {
+    try {
+      const saved = localStorage.getItem('ps_posterConfig');
+      return saved ? JSON.parse(saved) : {
+        style: 'narrative',
+        contentType: 'trending',
+        outputFormat: 'square',
+        minPages: 2,
+        maxPages: 4
+      };
+    } catch {
+      return {
+        style: 'narrative',
+        contentType: 'trending',
+        outputFormat: 'square',
+        minPages: 2,
+        maxPages: 4
+      };
+    }
   });
   const [currentPosterId, setCurrentPosterId] = useState<string | null>(null);
+  const [authModalMode, setAuthModalMode] = useState<'free-limit' | 'signup' | 'signin'>('signup');
   const { toast } = useToast();
+
+  const handleAuthModalOpen = (mode: 'free-limit' | 'signup' | 'signin') => {
+    setAuthModalMode(mode);
+    setCurrentStep('auth');
+  };
 
   const generatePosterMutation = useMutation({
     mutationFn: (data: any) => apiRequest('POST', '/.netlify/functions/generate-poster', data),
@@ -46,6 +71,7 @@ export default function PosterGenerator({ user }: PosterGeneratorProps) {
     },
     onError: (error: any) => {
       if (error.message.includes('Free limit reached')) {
+        setAuthModalMode('free-limit');
         setCurrentStep('auth');
       } else if (error.message.includes('Insufficient credits')) {
         toast({
@@ -91,7 +117,6 @@ export default function PosterGenerator({ user }: PosterGeneratorProps) {
       });
       return;
     }
-
     if (inputMode === 'url') {
       try {
         new URL(inputValue);
@@ -104,11 +129,20 @@ export default function PosterGenerator({ user }: PosterGeneratorProps) {
         return;
       }
     }
-
+    // Save state before moving to config
+    localStorage.setItem('ps_inputMode', inputMode);
+    localStorage.setItem('ps_inputValue', inputValue);
+    localStorage.setItem('ps_posterConfig', JSON.stringify(posterConfig));
+    localStorage.setItem('ps_currentStep', 'config');
     setCurrentStep('config');
   };
 
   const handleConfigComplete = () => {
+    // Save config before generation
+    localStorage.setItem('ps_posterConfig', JSON.stringify(posterConfig));
+    localStorage.setItem('ps_inputMode', inputMode);
+    localStorage.setItem('ps_inputValue', inputValue);
+    localStorage.setItem('ps_currentStep', 'preview');
     generatePosterMutation.mutate({
       sessionId,
       userId: user?.uid,
@@ -121,14 +155,45 @@ export default function PosterGenerator({ user }: PosterGeneratorProps) {
   const handleExampleClick = (example: string) => {
     setInputValue(example);
     setInputMode('keyword');
+    localStorage.setItem('ps_inputValue', example);
+    localStorage.setItem('ps_inputMode', 'keyword');
   };
+
+  // Restore state after auth if needed
+  useEffect(() => {
+    if (user && currentStep === 'input') {
+      // If user just signed in, check if we have saved state to restore
+      const savedStep = localStorage.getItem('ps_currentStep');
+      if (savedStep === 'config' || savedStep === 'preview') {
+        const savedInputMode = localStorage.getItem('ps_inputMode') as 'keyword' | 'url';
+        const savedInputValue = localStorage.getItem('ps_inputValue');
+        const savedPosterConfig = localStorage.getItem('ps_posterConfig');
+        if (savedInputMode && savedInputValue && savedPosterConfig) {
+          setInputMode(savedInputMode);
+          setInputValue(savedInputValue);
+          setPosterConfig(JSON.parse(savedPosterConfig));
+          setCurrentStep(savedStep as any);
+        }
+      }
+    }
+  }, [user]);
+
+  // Clear saved state when poster is generated or user resets
+  useEffect(() => {
+    if (currentStep === 'input') {
+      localStorage.removeItem('ps_inputMode');
+      localStorage.removeItem('ps_inputValue');
+      localStorage.removeItem('ps_posterConfig');
+      localStorage.removeItem('ps_currentStep');
+    }
+  }, [currentStep]);
 
   return (
     <div className="min-h-screen">
       {/* Header */}
       <Header 
         user={user} 
-        onAuthModalOpen={() => setCurrentStep('auth')} 
+        onAuthModalOpen={handleAuthModalOpen} 
       />
 
       {/* User Dashboard - only show for signed in users */}
@@ -494,6 +559,7 @@ export default function PosterGenerator({ user }: PosterGeneratorProps) {
         onComplete={handleConfigComplete}
         config={posterConfig}
         setConfig={setPosterConfig}
+        isGenerating={generatePosterMutation.isPending}
       />
 
       <PreviewModal
@@ -512,6 +578,7 @@ export default function PosterGenerator({ user }: PosterGeneratorProps) {
         isOpen={currentStep === 'auth'}
         onClose={() => setCurrentStep('input')}
         onSuccess={() => setCurrentStep('input')}
+        mode={authModalMode}
       />
     </div>
   );

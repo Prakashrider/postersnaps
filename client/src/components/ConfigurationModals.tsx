@@ -18,6 +18,7 @@ interface ConfigurationModalsProps {
     maxPages: number;
   };
   setConfig: (config: any) => void;
+  isGenerating?: boolean; // <-- add this prop
 }
 
 export default function ConfigurationModals({
@@ -25,7 +26,8 @@ export default function ConfigurationModals({
   onClose,
   onComplete,
   config,
-  setConfig
+  setConfig,
+  isGenerating = false // <-- default to false
 }: ConfigurationModalsProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [selectedOptions, setSelectedOptions] = useState(config);
@@ -279,8 +281,11 @@ export default function ConfigurationModals({
           <Button
             onClick={handleNext}
             className="flex items-center"
+            disabled={isGenerating && currentStep === steps.length - 1}
           >
-            {currentStep === steps.length - 1 ? 'Generate Poster' : 'Next Step'}
+            {currentStep === steps.length - 1
+              ? (isGenerating ? 'Generating...' : 'Generate Poster')
+              : 'Next Step'}
             <ArrowRight className="h-4 w-4 ml-2" />
           </Button>
         </div>

@@ -3,6 +3,8 @@ import { PosterConfig, UserUsage } from '@shared/schema';
 
 // Neon/Postgres-based storage implementation
 export const neonStorage = {
+  sql, // Expose sql for direct queries (e.g., duplicate check)
+
   // Poster Configs CRUD
   async createPosterConfig(config: Omit<PosterConfig, 'id' | 'createdAt'>): Promise<PosterConfig> {
     const id = Math.random().toString(36).substring(2, 15);

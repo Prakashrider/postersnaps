@@ -9,7 +9,7 @@ import { User as UserIcon, LogOut, Settings } from 'lucide-react';
 
 interface HeaderProps {
   user: User | null;
-  onAuthModalOpen: () => void;
+  onAuthModalOpen: (mode: 'free-limit' | 'signup' | 'signin') => void;
 }
 
 export default function Header({ user, onAuthModalOpen }: HeaderProps) {
@@ -135,13 +135,13 @@ export default function Header({ user, onAuthModalOpen }: HeaderProps) {
             <Button 
               variant="ghost" 
               size="sm"
-              onClick={onAuthModalOpen}
+              onClick={() => onAuthModalOpen('signin')}
               className="text-gray-700 hover:text-gray-900 font-medium"
             >
               Login
             </Button>
             <Button 
-              onClick={onAuthModalOpen}
+              onClick={() => onAuthModalOpen('signup')}
               className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg px-4 py-2 transition-all duration-200 shadow-sm hover:shadow"
             >
               Sign Up
@@ -195,7 +195,7 @@ export default function Header({ user, onAuthModalOpen }: HeaderProps) {
                   variant="ghost" 
                   size="sm"
                   onClick={() => {
-                    onAuthModalOpen();
+                    onAuthModalOpen('signin');
                     setIsMobileMenuOpen(false);
                   }}
                   className="w-full justify-start text-gray-700 hover:text-gray-900 font-medium mb-2"
@@ -204,7 +204,7 @@ export default function Header({ user, onAuthModalOpen }: HeaderProps) {
                 </Button>
                 <Button 
                   onClick={() => {
-                    onAuthModalOpen();
+                    onAuthModalOpen('signup');
                     setIsMobileMenuOpen(false);
                   }}
                   className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg"
