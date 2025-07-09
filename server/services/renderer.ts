@@ -23,42 +23,22 @@ export async function renderPoster(params: RenderParams): Promise<string[]> {
     headline: content.headline.substring(0, 30) + '...'
   }, null, 2));
 
+  let browser;
   try {
-    if (process.env.NETLIFY || process.env.NODE_ENV === 'production' || process.env.FORCE_FALLBACK_RENDERER) {
-      try {
-        const browser = await puppeteer.launch({
-          args: chromium.args,
-          executablePath: await chromium.executablePath(),
-          headless: true,
-        });
-        const posterUrls: string[] = [];
-        for (let i = 0; i < pages; i++) {
-          const page = await browser.newPage();
-          const dimensions = getFormatDimensions(format);
-          await page.setViewport(dimensions);
-          const html = await generatePosterHTML(content, style, format, i);
-          await page.setContent(html, { waitUntil: 'networkidle0' });
-          const screenshot = await page.screenshot({
-            type: 'png',
-            fullPage: true,
-            omitBackground: false
-          });
-          const base64 = Buffer.from(screenshot).toString('base64');
-          const dataUrl = `data:image/png;base64,${base64}`;
-          posterUrls.push(dataUrl);
-          await page.close();
-        }
-        await browser.close();
-        return posterUrls;
-      } catch (chromiumError) {
-        console.error('Puppeteer/Chromium rendering error:', chromiumError);
-        console.log('Falling back to SVG rendering...');
-        return await generateSVGPosters(content, style, format, pages);
-      }
+    const isServerless = process.env.NETLIFY || process.env.NODE_ENV === 'production' || process.env.FORCE_FALLBACK_RENDERER;
+    
+    if (isServerless) {
+      console.log('Launching Puppeteer with Chromium executable (serverless/production mode)...');
+      browser = await puppeteer.launch({
+        args: chromium.args,
+        executablePath: await chromium.executablePath(),
+        headless: true,
+      });
+    } else {
+      console.log('Launching Puppeteer with default executable (local/dev mode)...');
+      browser = await puppeteer.launch();
     }
 
-    // Local/dev fallback
-    const browser = await puppeteer.launch();
     const posterUrls: string[] = [];
     for (let i = 0; i < pages; i++) {
       const page = await browser.newPage();
@@ -80,7 +60,7 @@ export async function renderPoster(params: RenderParams): Promise<string[]> {
     return posterUrls;
   } catch (error) {
     console.error('Poster rendering error:', error);
-    console.log('Falling back to SVG rendering...');
+    console.log('Falling back to SVG rendering as a fallback...');
     // Fallback to SVG generation
     return await generateSVGPosters(content, style, format, pages);
   }
@@ -128,6 +108,7 @@ async function generatePosterHTML(content: AIContent, style: PosterStyle, format
 }
 
 async function generateSVGPosters(content: AIContent, style: PosterStyle, format: OutputFormat, pages: number): Promise<string[]> {
+  console.log('Generating SVG posters as fallback...');
   const posterUrls: string[] = [];
   const dimensions = getFormatDimensions(format);
   

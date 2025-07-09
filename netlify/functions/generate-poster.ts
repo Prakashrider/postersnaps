@@ -86,37 +86,23 @@ export const handler: Handler = async (event, context) => {
       }
     }
 
-    // Create poster config
+    // Create poster config and return immediately (background processing will be triggered elsewhere)
     const posterConfig = await neonStorage.createPosterConfig({
       ...config,
       status: 'processing'
     });
 
-    // Run poster generation synchronously for debugging (not for production)
-    try {
-      await processPostersInBackground(posterConfig.id);
-      // After processing, fetch updated config for status
-      const updatedConfig = await neonStorage.getPosterConfig(posterConfig.id);
-      return {
-        statusCode: 200,
-        body: JSON.stringify({
-          success: updatedConfig?.status === 'completed',
-          posterId: posterConfig.id,
-          status: updatedConfig?.status,
-          message: updatedConfig?.status === 'completed' ? 'Poster generation completed' : 'Poster generation failed',
-          error: updatedConfig?.errorMessage || null
-        })
-      };
-    } catch (err) {
-      console.error('Synchronous poster generation error:', err);
-      return {
-        statusCode: 500,
-        body: JSON.stringify({
-          error: 'Poster generation failed',
-          details: err instanceof Error ? err.message : 'Unknown error'
-        })
-      };
-    }
+    // Start background poster processing
+    processPostersInBackground(posterConfig.id);
+
+    // Return immediately so client can poll for status
+    return {
+      statusCode: 200,
+      body: JSON.stringify({
+        posterId: posterConfig.id,
+        status: 'processing'
+      })
+    };
   } catch (error) {
     console.error('Generate poster error:', error);
     console.error('Error details:', {
